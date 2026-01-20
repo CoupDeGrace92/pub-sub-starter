@@ -13,7 +13,7 @@ import (
 
 func main() {
 	fmt.Println("Starting Peril server...")
-	rabbitCon := "amqp://guest:guest@localhost:5672/"
+	rabbitCon := routing.RabbitConString
 	connection, err := amqp.Dial(rabbitCon)
 	if err != nil {
 		log.Printf("Error creating rabbit mq connection: %v\n", err)

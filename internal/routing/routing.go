@@ -14,3 +14,7 @@ const (
 	ExchangePerilDirect = "peril_direct"
 	ExchangePerilTopic  = "peril_topic"
 )
+
+const (
+	RabbitConString = "amqp://guest:guest@localhost:5672/"
+)
