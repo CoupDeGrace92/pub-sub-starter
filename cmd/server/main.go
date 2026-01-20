@@ -3,9 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
-	"os"
-	"os/signal"
 
+	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/routing"
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -27,6 +26,7 @@ func main() {
 		log.Printf("Error creating pause/resume channel: %v\n", err)
 		return
 	}
+	gamelogic.PrintServerHelp()
 
 	err = pauseResumeCh.ExchangeDeclare(
 		"peril_direct", //Exchange name
@@ -42,37 +42,23 @@ func main() {
 		log.Printf("Error declaring exchange: %v\n", err)
 		return
 	}
-
-	testQueue, err := pauseResumeCh.QueueDeclare(
-		"pause_test",
-		true,
-		false,
-		false,
-		false,
-		nil,
-	)
-	if err != nil {
-		log.Printf("Error in creating queue: %v\n", err)
-		return
+inf:
+	for {
+		cmd := gamelogic.GetInput()
+		switch cmd[0] {
+		case "pause":
+			log.Println("Sending pause message")
+			pubsub.PublishJSON(pauseResumeCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+		case "resume":
+			log.Println("Sending resume message")
+			pubsub.PublishJSON(pauseResumeCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
+		case "quit":
+			log.Println("Exiting...")
+			break inf
+		default:
+			log.Println("I don't understand the command: ", cmd[0])
+		}
 	}
-	fmt.Println("Queue created")
-	err = pauseResumeCh.QueueBind(
-		testQueue.Name,
-		routing.PauseKey,
-		"peril_direct",
-		false,
-		nil,
-	)
-	if err != nil {
-		log.Printf("Error in binding test queue")
-		return
-	}
-	fmt.Println("Queue bound to peril_direct")
 
-	pubsub.PublishJSON(pauseResumeCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
-
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, os.Interrupt)
-	<-signalChan
 	fmt.Println("Connection closing")
 }
