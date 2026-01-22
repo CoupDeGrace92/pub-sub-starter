@@ -9,7 +9,7 @@ import (
 type SimpleQueueType int
 
 const (
-	InvalidType SimpleQueueType = iota
+	InvType SimpleQueueType = iota
 	Durable
 	Transient
 )
@@ -40,14 +40,16 @@ func DeclareAndBind(conn *amqp.Connection, exchange, queueName, key string, queu
 	if err != nil {
 		return nil, amqp.Queue{}, err
 	}
-
+	dlxKey := amqp.Table{
+		"x-dead-letter-exchange": "peril_dlx",
+	}
 	q, err := ch.QueueDeclare(
 		queueName,
 		d.durable,    //durable
 		d.autoDelete, //autodelete
 		d.exclusive,  //exclusive
 		false,
-		nil,
+		dlxKey,
 	)
 	if err != nil {
 		return nil, amqp.Queue{}, err

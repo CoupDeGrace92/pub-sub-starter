@@ -22,7 +22,7 @@ func SubscribeJSON[T any](
 	queueName,
 	key string,
 	queueType SimpleQueueType,
-	handler func(T),
+	handler func(T) Acknowledge,
 ) error {
 	ch, q, err := DeclareAndBind(conn, exchange, queueName, key, queueType)
 	if err != nil {
@@ -49,10 +49,24 @@ func SubscribeJSON[T any](
 			if err != nil {
 				log.Printf("Error unmarshalling %v: %v\n", rawResp, err)
 			}
-			handler(rawResp)
-			err = delivery.Ack(false)
-			if err != nil {
-				log.Printf("Error acknowledging delivery from broker: %v\n", err)
+			a := handler(rawResp)
+
+			switch a {
+			case Ack:
+				err = delivery.Ack(false)
+				if err != nil {
+					log.Printf("Error acknowledging delivery from broker: %v\n", err)
+				}
+			case NackDiscard:
+				err = delivery.Nack(false, false)
+				if err != nil {
+					log.Printf("Error acknowledging delivery from broker: %v\n", err)
+				}
+			default:
+				err = delivery.Nack(false, true)
+				if err != nil {
+					log.Printf("Error acknowledging delivery from broker %v\n", err)
+				}
 			}
 		}
 	}()

@@ -38,19 +38,28 @@ func main() {
 		handlerPause(gs),
 	)
 
+	moveChan, err := connection.Channel()
+	if err != nil {
+		log.Fatalf("Error creating a channel for %s's moves: %v\n", username, err)
+	}
+
 	pubsub.SubscribeJSON(
 		connection,
 		routing.ExchangePerilTopic,
 		fmt.Sprintf("army_moves.%s", username),
 		"army_moves.*",
 		pubsub.Transient,
-		handlerMove(gs),
+		handlerMove(gs, moveChan),
 	)
 
-	moveChan, err := connection.Channel()
-	if err != nil {
-		log.Fatalf("Error creating a channel for %s's moves: %v\n", username, err)
-	}
+	pubsub.SubscribeJSON(
+		connection,
+		routing.ExchangePerilTopic,
+		"war",
+		routing.WarRecognitionsPrefix+".*",
+		pubsub.Durable,
+		handlerWar(gs),
+	)
 
 repl:
 	for {
