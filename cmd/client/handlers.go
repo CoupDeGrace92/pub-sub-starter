@@ -55,8 +55,6 @@ func handlerWar(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.Recogn
 	return func(war gamelogic.RecognitionOfWar) pubsub.Acknowledge {
 		defer fmt.Print("> ")
 		outcome, winner, loser := gs.HandleWar(war)
-		fmt.Printf("WAR DEBUG: me=%+v\nattacker=%+v\ndefender=%+v\noutcome=%v\n\n",
-			gs.GetPlayerSnap(), war.Attacker, war.Defender, outcome)
 		switch outcome {
 		case gamelogic.WarOutcomeNotInvolved:
 			log.Printf("Not involved in war between %s and %s\n", war.Attacker.Username, war.Defender.Username)
