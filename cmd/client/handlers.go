@@ -51,27 +51,33 @@ func handlerMove(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.ArmyM
 	}
 }
 
-func handlerWar(gs *gamelogic.GameState) func(gamelogic.RecognitionOfWar) pubsub.Acknowledge {
+func handlerWar(gs *gamelogic.GameState, ch *amqp.Channel) func(gamelogic.RecognitionOfWar) pubsub.Acknowledge {
 	return func(war gamelogic.RecognitionOfWar) pubsub.Acknowledge {
 		defer fmt.Print("> ")
-		outcome, _, _ := gs.HandleWar(war)
+		outcome, winner, loser := gs.HandleWar(war)
 		fmt.Printf("WAR DEBUG: me=%+v\nattacker=%+v\ndefender=%+v\noutcome=%v\n\n",
 			gs.GetPlayerSnap(), war.Attacker, war.Defender, outcome)
 		switch outcome {
 		case gamelogic.WarOutcomeNotInvolved:
-			fmt.Printf("Not involved in war between %s and %s\n", war.Attacker.Username, war.Defender.Username)
+			log.Printf("Not involved in war between %s and %s\n", war.Attacker.Username, war.Defender.Username)
 			return pubsub.NackRequeue
 		case gamelogic.WarOutcomeNoUnits:
 			log.Println("War outcome: No units")
 			return pubsub.NackDiscard
 		case gamelogic.WarOutcomeOpponentWon:
-			log.Printf("You LOST the war between %s and %s", war.Attacker.Username, war.Defender.Username)
+			msg := fmt.Sprintf("%s won a war against %s", winner, loser)
+			log.Print(msg)
+			pubsub.PublishGameLog(ch, war.Attacker.Username, gs.GetUsername(), msg)
 			return pubsub.Ack
 		case gamelogic.WarOutcomeYouWon:
-			log.Printf("You WON the war between %s and %s\n", war.Attacker.Username, war.Defender.Username)
+			msg := fmt.Sprintf("%s won a war against %s", winner, loser)
+			log.Print(msg)
+			pubsub.PublishGameLog(ch, war.Attacker.Username, gs.GetUsername(), msg)
 			return pubsub.Ack
 		case gamelogic.WarOutcomeDraw:
-			log.Printf("The war between %s and %s ended in a DRAW\n", war.Attacker.Username, war.Defender.Username)
+			msg := fmt.Sprintf("A war between %s and %s resulted in a draw", winner, loser)
+			log.Print(msg)
+			pubsub.PublishGameLog(ch, war.Attacker.Username, gs.GetUsername(), msg)
 			return pubsub.Ack
 		default:
 			log.Printf("Error, war outcome unrecognized %v", outcome)

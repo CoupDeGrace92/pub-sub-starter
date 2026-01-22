@@ -58,7 +58,7 @@ func main() {
 		"war",
 		routing.WarRecognitionsPrefix+".*",
 		pubsub.Durable,
-		handlerWar(gs),
+		handlerWar(gs, moveChan),
 	)
 
 repl:
