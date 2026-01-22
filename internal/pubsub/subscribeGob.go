@@ -21,6 +21,10 @@ func SubscribeGob[T any](
 		return err
 	}
 
+	err = ch.Qos(10, 0, false)
+	if err != nil {
+		return err
+	}
 	consumeCh, err := ch.Consume(
 		q.Name,
 		"",

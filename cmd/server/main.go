@@ -66,7 +66,7 @@ func main() {
 		nil,
 	)
 
-	_, _, err = pubsub.DeclareAndBind(connection, "peril_dlx", "peril_dlq", "", pubsub.Transient)
+	_, _, err = pubsub.DeclareAndBind(connection, "peril_dlx", "peril_dlq", "", pubsub.Durable)
 	if err != nil {
 		log.Fatalf("Error creating and binding dead letter queue: %v\n", err)
 	}
@@ -76,32 +76,43 @@ func main() {
 		log.Fatalf("Error creating and binding game log queue: %v", err)
 	}
 
-	pubsub.SubscribeGob(
-		connection,
-		routing.ExchangePerilTopic,
-		routing.GameLogSlug,
-		"game_logs.*",
-		pubsub.Durable,
-		handlerGameLog,
-	)
+	forever := make(chan struct{})
 
-repl:
-	for {
-		cmd := gamelogic.GetInput()
-		switch cmd[0] {
-		case "pause":
-			log.Println("Sending pause message")
-			pubsub.PublishJSON(pauseResumeCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
-		case "resume":
-			log.Println("Sending resume message")
-			pubsub.PublishJSON(pauseResumeCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
-		case "quit":
-			log.Println("Exiting...")
-			break repl
-		default:
-			log.Println("I don't understand the command: ", cmd[0])
-		}
-	}
+	go func() {
+		pubsub.SubscribeGob(
+			connection,
+			routing.ExchangePerilTopic,
+			routing.GameLogSlug,
+			"game_logs.*",
+			pubsub.Durable,
+			handlerGameLog,
+		)
+	}()
 
-	fmt.Println("Connection closing")
+	<-forever
+	/*
+	   repl:
+
+	   	for {
+	   		cmd := gamelogic.GetInput()
+	   		if len(cmd) == 0 {
+	   			continue
+	   		}
+	   		switch cmd[0] {
+	   		case "pause":
+	   			log.Println("Sending pause message")
+	   			pubsub.PublishJSON(pauseResumeCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: true})
+	   		case "resume":
+	   			log.Println("Sending resume message")
+	   			pubsub.PublishJSON(pauseResumeCh, routing.ExchangePerilDirect, routing.PauseKey, routing.PlayingState{IsPaused: false})
+	   		case "quit":
+	   			log.Println("Exiting...")
+	   			break repl
+	   		default:
+	   			log.Println("I don't understand the command: ", cmd[0])
+	   		}
+	   	}
+
+	   	fmt.Println("Connection closing")
+	*/
 }

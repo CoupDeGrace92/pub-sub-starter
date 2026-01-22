@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"strconv"
 
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/gamelogic"
 	"github.com/bootdotdev/learn-pub-sub-starter/internal/pubsub"
@@ -83,7 +84,19 @@ repl:
 		case "help":
 			gamelogic.PrintClientHelp()
 		case "spam":
-			fmt.Println("Spamming is not allowed")
+			if len(cmd) < 2 {
+				log.Println("Command spam expects an additional argument")
+				continue
+			}
+			numSpam, err := strconv.Atoi(cmd[1])
+			if err != nil {
+				log.Println("Error in converting string to int: ", err)
+			}
+			for i := 0; i < numSpam; i++ {
+				mal := gamelogic.GetMaliciousLog()
+				user := gs.GetUsername()
+				pubsub.PublishGameLog(moveChan, user, user, mal)
+			}
 		case "quit":
 			fmt.Println("Exiting Peril...")
 			break repl
