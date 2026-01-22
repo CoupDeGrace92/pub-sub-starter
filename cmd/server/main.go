@@ -76,6 +76,15 @@ func main() {
 		log.Fatalf("Error creating and binding game log queue: %v", err)
 	}
 
+	pubsub.SubscribeGob(
+		connection,
+		routing.ExchangePerilTopic,
+		routing.GameLogSlug,
+		"game_logs.*",
+		pubsub.Durable,
+		handlerGameLog,
+	)
+
 repl:
 	for {
 		cmd := gamelogic.GetInput()
